@@ -1,13 +1,11 @@
 const request = require('supertest');
 const { createApp } = require('../../src/http/app');
-const { pool } = require('../../src/infrastructure/db');
-const { seed } = require('../../scripts/seed');
-const { fixedClock } = require('../helpers');
+const { fixedClock, resetData, closeAll } = require('../helpers');
 
 const app = createApp({ clock: fixedClock });
 
-beforeEach(() => seed());
-afterAll(() => pool.end());
+beforeEach(() => resetData());
+afterAll(() => closeAll());
 
 test('DELETE renvoie 204 et la réservation reste enregistrée en cancelled', async () => {
   const res = await request(app).delete('/bookings/booking-1');

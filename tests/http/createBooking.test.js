@@ -1,13 +1,11 @@
 const request = require('supertest');
 const { createApp } = require('../../src/http/app');
-const { pool } = require('../../src/infrastructure/db');
-const { seed } = require('../../scripts/seed');
-const { fixedClock } = require('../helpers');
+const { fixedClock, resetData, closeAll } = require('../helpers');
 
 const app = createApp({ clock: fixedClock });
 
-beforeEach(() => seed());
-afterAll(() => pool.end());
+beforeEach(() => resetData());
+afterAll(() => closeAll());
 
 const body = { memberId: 'member-3', start: '2026-11-04T14:00:00Z', end: '2026-11-04T16:00:00Z' };
 

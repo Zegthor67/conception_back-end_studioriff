@@ -1,13 +1,11 @@
 const request = require('supertest');
 const { createApp } = require('../../src/http/app');
-const { pool } = require('../../src/infrastructure/db');
-const { seed } = require('../../scripts/seed');
-const { fixedClock } = require('../helpers');
+const { fixedClock, resetData, closeAll } = require('../helpers');
 
 const app = createApp({ clock: fixedClock });
 
-beforeEach(() => seed());
-afterAll(() => pool.end());
+beforeEach(() => resetData());
+afterAll(() => closeAll());
 
 test('GET /rooms renvoie les 4 salles', async () => {
   const res = await request(app).get('/rooms');

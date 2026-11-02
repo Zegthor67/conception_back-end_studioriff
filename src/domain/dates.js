@@ -13,4 +13,10 @@ function toUtcString(date) {
   return date.toISOString().replace('.000Z', 'Z');
 }
 
-module.exports = { parseUtcDate, toUtcString };
+function startOfHour(date) {
+  const copy = new Date(date);
+  copy.setUTCMinutes(0, 0, 0);
+  return copy;
+}
+
+module.exports = { parseUtcDate, toUtcString, startOfHour };
