@@ -41,7 +41,7 @@ J'ai découpé l'application en quatre couches. Les dépendances pointent toujou
 
 Le domaine ne sait rien de la base de données. Il est composé de fonctions qui prennent des objets simples en entrée (une réservation, une liste de réservations, l'heure actuelle) et qui renvoient un résultat, ou lèvent une erreur si une règle n'est pas respectée.
 
-Les use cases reçoivent leurs dépendances en paramètre : les repositories et une horloge, qui n'est rien d'autre qu'un objet `{ now() }`. L'intérêt, c'est que dans les tests unitaires je peux passer une fausse horloge bloquée au lundi 2 novembre 2026 à 9h, sans avoir besoin de lancer Postgres.
+Les use cases reçoivent l'horloge en paramètre, qui n'est rien d'autre qu'un objet `{ now() }`, et importent directement les repositories. L'intérêt, c'est que dans les tests unitaires je peux passer une fausse horloge bloquée au lundi 2 novembre 2026 à 9h, sans avoir besoin de lancer Postgres.
 
 Les routes, elles, ne contiennent aucune règle métier. Elles lisent le JSON, appellent le use case et renvoient la réponse. La conversion des erreurs du domaine en codes HTTP se fait à un seul endroit, dans un middleware d'erreur Express.
 
@@ -121,7 +121,7 @@ En sortie, les dates sont toujours renvoyées au format demandé dans le sujet, 
 
 La route `GET /rooms/:id/bookings?from=…&to=…` renvoie uniquement les réservations `confirmed` qui chevauchent la période demandée (`start_at < to` et `end_at > from`), triées par date de début. Une réservation annulée n'a pas sa place dans un planning. C'est aussi cette requête qui sera mesurée à l'étape 5.
 
-Si `from` n'est pas fourni, je prends l'heure actuelle donnée par l'horloge. Si `to` n'est pas fourni, je prends `from + 7 jours`. Si l'une des deux dates est mal formée, l'API renvoie un 400.
+Si `from` n'est pas fourni, je prends l'heure actuelle donnée par l'horloge, arrondie à l'heure pile pour que le cache puisse servir la même clé pendant toute l'heure. Si `to` n'est pas fourni, je prends `from + 7 jours`. Si l'une des deux dates est mal formée, l'API renvoie un 400.
 
 ## Les codes HTTP
 
