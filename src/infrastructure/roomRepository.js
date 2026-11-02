@@ -10,4 +10,12 @@ async function findRoomById(id, db = pool) {
   return rows[0] || null;
 }
 
-module.exports = { findAllRooms, findRoomById };
+async function findMaintenancesByRoom(roomId, db = pool) {
+  const { rows } = await db.query(
+    'SELECT starts_at, ends_at FROM room_maintenances WHERE room_id = $1',
+    [roomId]
+  );
+  return rows.map((row) => ({ start: row.starts_at, end: row.ends_at }));
+}
+
+module.exports = { findAllRooms, findRoomById, findMaintenancesByRoom };

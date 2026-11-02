@@ -63,4 +63,17 @@ function cancelBooking(booking, now) {
   return booking.start - now < LATE_CANCEL_DELAY ? 'late_cancelled' : 'cancelled';
 }
 
-module.exports = { validateSlot, overlaps, checkNoOverlap, checkMemberLimit, cancelBooking };
+function checkMaintenance(maintenances, start, end) {
+  if (maintenances.some((m) => overlaps(m.start, m.end, start, end))) {
+    throw new ConflictError('La salle est en maintenance sur ce créneau');
+  }
+}
+
+module.exports = {
+  validateSlot,
+  overlaps,
+  checkNoOverlap,
+  checkMemberLimit,
+  cancelBooking,
+  checkMaintenance,
+};

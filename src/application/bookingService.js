@@ -1,7 +1,13 @@
 const crypto = require('crypto');
 const { NotFoundError, ValidationError } = require('../domain/errors');
 const { parseUtcDate } = require('../domain/dates');
-const { validateSlot, checkNoOverlap, checkMemberLimit, cancelBooking } = require('../domain/booking');
+const {
+  validateSlot,
+  checkNoOverlap,
+  checkMemberLimit,
+  cancelBooking,
+  checkMaintenance,
+} = require('../domain/booking');
 const { pool } = require('../infrastructure/db');
 const roomRepository = require('../infrastructure/roomRepository');
 const memberRepository = require('../infrastructure/memberRepository');
@@ -46,6 +52,9 @@ async function bookRoom(roomId, body, clock) {
   const end = parseUtcDate(endParam, 'end');
 
   validateSlot(start, end, clock.now());
+
+  const maintenances = await roomRepository.findMaintenancesByRoom(roomId);
+  checkMaintenance(maintenances, start, end);
 
   const client = await pool.connect();
   try {
