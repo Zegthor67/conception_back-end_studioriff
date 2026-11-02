@@ -40,7 +40,12 @@ function createApp({ clock }) {
     res.json(toJson(await bookingService.getBooking(req.params.id)));
   });
 
-  app.get('/members/:id/bookings', async (req, res) => {
+  app.delete('/bookings/:id', async (req, res) => {
+    await bookingService.cancel(req.params.id, clock);
+    res.status(204).end();
+  });
+
+  app.get('/members/:id/bookings',async (req, res) => {
     const bookings = await bookingService.listMemberBookings(req.params.id);
     res.json(bookings.map(toJson));
   });

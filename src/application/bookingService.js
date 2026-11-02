@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const { NotFoundError, ValidationError } = require('../domain/errors');
 const { parseUtcDate } = require('../domain/dates');
-const { validateSlot, checkNoOverlap, checkMemberLimit } = require('../domain/booking');
+const { validateSlot, checkNoOverlap, checkMemberLimit, cancelBooking } = require('../domain/booking');
 const { pool } = require('../infrastructure/db');
 const roomRepository = require('../infrastructure/roomRepository');
 const memberRepository = require('../infrastructure/memberRepository');
@@ -75,4 +75,26 @@ async function bookRoom(roomId, body, clock) {
   }
 }
 
-module.exports = { listRooms, getRoomSchedule, getBooking, listMemberBookings, bookRoom };
+async function cancel(bookingId, clock) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const booking = await bookingRepository.lockBookingById(bookingId, client);
+    if (!booking) throw new NotFoundError('Réservation introuvable');
+
+    const now = clock.now();
+    const status = cancelBooking(booking, now);
+    const cancelled = await bookingRepository.updateBookingStatus(bookingId, status, now, client);
+
+    await client.query('COMMIT');
+    return cancelled;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { listRooms, getRoomSchedule, getBooking, listMemberBookings, bookRoom, cancel };

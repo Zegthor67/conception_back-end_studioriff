@@ -56,4 +56,24 @@ async function insertBooking(booking, db = pool) {
   }
 }
 
-module.exports = { findBookingById, findBookingsByMember, findRoomSchedule, insertBooking };
+async function lockBookingById(id, db) {
+  const { rows } = await db.query(`SELECT ${COLUMNS} FROM bookings WHERE id = $1 FOR UPDATE`, [id]);
+  return rows[0] ? toBooking(rows[0]) : null;
+}
+
+async function updateBookingStatus(id, status, cancelledAt, db = pool) {
+  const { rows } = await db.query(
+    `UPDATE bookings SET status = $2, cancelled_at = $3 WHERE id = $1 RETURNING ${COLUMNS}`,
+    [id, status, cancelledAt]
+  );
+  return toBooking(rows[0]);
+}
+
+module.exports = {
+  findBookingById,
+  findBookingsByMember,
+  findRoomSchedule,
+  insertBooking,
+  lockBookingById,
+  updateBookingStatus,
+};

@@ -51,4 +51,16 @@ function checkMemberLimit(memberBookings, now) {
   }
 }
 
-module.exports = { validateSlot, overlaps, checkNoOverlap, checkMemberLimit };
+const LATE_CANCEL_DELAY = 24 * HOUR;
+
+function cancelBooking(booking, now) {
+  if (booking.status !== 'confirmed') {
+    throw new ConflictError('Cette réservation est déjà annulée');
+  }
+  if (booking.start <= now) {
+    throw new ConflictError('Cette réservation a déjà commencé');
+  }
+  return booking.start - now < LATE_CANCEL_DELAY ? 'late_cancelled' : 'cancelled';
+}
+
+module.exports = { validateSlot, overlaps, checkNoOverlap, checkMemberLimit, cancelBooking };
