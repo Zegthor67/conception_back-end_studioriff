@@ -36,4 +36,14 @@ async function findRoomSchedule(roomId, from, to, db = pool) {
   return rows.map(toBooking);
 }
 
-module.exports = { findBookingById, findBookingsByMember, findRoomSchedule };
+async function insertBooking(booking, db = pool) {
+  const { rows } = await db.query(
+    `INSERT INTO bookings (id, room_id, member_id, start_at, end_at, status)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING ${COLUMNS}`,
+    [booking.id, booking.roomId, booking.memberId, booking.start, booking.end, booking.status]
+  );
+  return toBooking(rows[0]);
+}
+
+module.exports = { findBookingById, findBookingsByMember, findRoomSchedule, insertBooking };

@@ -1,5 +1,8 @@
+const crypto = require('crypto');
 const { NotFoundError, ValidationError } = require('../domain/errors');
 const { parseUtcDate } = require('../domain/dates');
+const { validateSlot } = require('../domain/booking');
+const { pool } = require('../infrastructure/db');
 const roomRepository = require('../infrastructure/roomRepository');
 const memberRepository = require('../infrastructure/memberRepository');
 const bookingRepository = require('../infrastructure/bookingRepository');
@@ -33,4 +36,37 @@ async function listMemberBookings(memberId) {
   return bookingRepository.findBookingsByMember(memberId);
 }
 
-module.exports = { listRooms, getRoomSchedule, getBooking, listMemberBookings };
+async function bookRoom(roomId, body, clock) {
+  const room = await roomRepository.findRoomById(roomId);
+  if (!room) throw new NotFoundError('Salle introuvable');
+
+  const { memberId, start: startParam, end: endParam } = body || {};
+  if (typeof memberId !== 'string') throw new ValidationError('memberId est obligatoire');
+  const start = parseUtcDate(startParam, 'start');
+  const end = parseUtcDate(endParam, 'end');
+
+  validateSlot(start, end, clock.now());
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const member = await memberRepository.findMemberById(memberId, client);
+    if (!member) throw new ValidationError('memberId inconnu');
+
+    const booking = await bookingRepository.insertBooking(
+      { id: crypto.randomUUID(), roomId, memberId, start, end, status: 'confirmed' },
+      client
+    );
+
+    await client.query('COMMIT');
+    return booking;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { listRooms, getRoomSchedule, getBooking, listMemberBookings, bookRoom };

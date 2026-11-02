@@ -31,7 +31,12 @@ function createApp({ clock }) {
     res.json(bookings.map(toJson));
   });
 
-  app.get('/bookings/:id', async (req, res) => {
+  app.post('/rooms/:id/bookings', async (req, res) => {
+    const booking = await bookingService.bookRoom(req.params.id, req.body, clock);
+    res.status(201).location(`/bookings/${booking.id}`).json(toJson(booking));
+  });
+
+  app.get('/bookings/:id',async (req, res) => {
     res.json(toJson(await bookingService.getBooking(req.params.id)));
   });
 
