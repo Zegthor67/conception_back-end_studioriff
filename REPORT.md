@@ -121,8 +121,18 @@ Valkey n'est pas sauvegardé : il ne contient que du cache, qui se reconstruit t
 ### Preuve de la restauration
 
 ```
-À COLLER
+$ ./restore.sh backups/studio_riff_20261102_152616.dump
+Sauvegarde backups/studio_riff_20261102_152616.dump restaurée dans la base studio_riff_restore
+
+table                 studio_riff studio_riff_restore
+rooms                           4            4
+room_maintenances               1            1
+members                         3            3
+bookings                        5            5
+schema_migrations               2            2
 ```
+
+La sauvegarde a été restaurée dans une nouvelle base, `studio_riff_restore`, sans toucher à `studio_riff`. Chaque table a le même nombre de lignes des deux côtés. La table `bookings` contient 5 lignes : les 4 réservations de départ, plus une réservation créée pendant les essais manuels de l'API.
 
 ### RPO, RTO et rétention
 
