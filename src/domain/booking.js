@@ -1,4 +1,4 @@
-const { ValidationError } = require('./errors');
+const { ValidationError, ConflictError } = require('./errors');
 
 const HOUR = 60 * 60 * 1000;
 const OPENING_HOUR = 10;
@@ -28,4 +28,18 @@ function validateSlot(start, end, now) {
   }
 }
 
-module.exports = { validateSlot };
+// Fin exclue : 18h-20h et 20h-22h ne se chevauchent pas
+function overlaps(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
+function checkNoOverlap(roomBookings, start, end) {
+  const conflict = roomBookings.some(
+    (b) => b.status === 'confirmed' && overlaps(b.start, b.end, start, end)
+  );
+  if (conflict) {
+    throw new ConflictError('La salle est déjà réservée sur ce créneau');
+  }
+}
+
+module.exports = { validateSlot, overlaps, checkNoOverlap };

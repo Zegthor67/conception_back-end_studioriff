@@ -1,4 +1,5 @@
 const { pool } = require('./db');
+const { ConflictError } = require('../domain/errors');
 
 const COLUMNS = 'id, room_id, member_id, start_at, end_at, status';
 
@@ -36,14 +37,23 @@ async function findRoomSchedule(roomId, from, to, db = pool) {
   return rows.map(toBooking);
 }
 
+const EXCLUSION_VIOLATION = '23P01';
+
 async function insertBooking(booking, db = pool) {
-  const { rows } = await db.query(
-    `INSERT INTO bookings (id, room_id, member_id, start_at, end_at, status)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING ${COLUMNS}`,
-    [booking.id, booking.roomId, booking.memberId, booking.start, booking.end, booking.status]
-  );
-  return toBooking(rows[0]);
+  try {
+    const { rows } = await db.query(
+      `INSERT INTO bookings (id, room_id, member_id, start_at, end_at, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING ${COLUMNS}`,
+      [booking.id, booking.roomId, booking.memberId, booking.start, booking.end, booking.status]
+    );
+    return toBooking(rows[0]);
+  } catch (err) {
+    if (err.code === EXCLUSION_VIOLATION) {
+      throw new ConflictError('La salle est déjà réservée sur ce créneau');
+    }
+    throw err;
+  }
 }
 
 module.exports = { findBookingById, findBookingsByMember, findRoomSchedule, insertBooking };
