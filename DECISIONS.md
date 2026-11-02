@@ -1,8 +1,8 @@
 # DECISIONS : Studio Riff
 
-Dans ce document, j'explique comment j'ai organisé le projet avant de commencer à coder : à quel endroit se trouve chaque règle métier, comment les couches sont découpées et à quoi ressemble le modèle de la base de données. Les deux ADR sont à la fin.
+Dans ce document, j'explique comment j'ai organisé le projet avant de commencer à coder : à quel endroit se trouve chaque règle métier, comment les couches sont découpées et à quoi ressemble le modèle de la base de données. Les trois ADR sont à la fin.
 
-Pour la stack, j'utilise Node.js avec Express (en JavaScript), PostgreSQL 17, et Valkey pour le cache qui arrivera plus tard. Le choix entre un driver simple et un ORM sera justifié dans un ADR à l'étape 2.
+Pour la stack, j'utilise Node.js avec Express (en JavaScript), PostgreSQL 17, et Valkey pour le cache qui arrivera plus tard. Le choix entre un driver simple et un ORM est justifié dans l'ADR-003.
 
 ## Les couches
 
@@ -205,3 +205,13 @@ Pour garder la trace d'une annulation, un statut et une colonne `cancelled_at` s
 Il y a aussi un vrai risque avec l'event sourcing : la contrainte d'exclusion deviendrait compliquée à appliquer, puisqu'il faudrait maintenir une projection à jour de manière synchrone. On risquerait de perdre la garantie la plus importante du sujet. Et pour 4 salles et 3 membres, ajouter un bus de commandes, des projections et des handlers ferait beaucoup de code pour pas grand-chose, ce qui n'est pas réaliste en 4h.
 
 Conséquences : si l'association a besoin un jour de statistiques plus détaillées sur l'historique (qui a annulé quoi, quand, et combien de fois), il sera possible d'ajouter une table d'audit à côté, sans remettre en cause le reste.
+
+## ADR-003 : le driver `pg` avec du SQL écrit à la main, sans ORM
+
+Contexte : il faut accéder à PostgreSQL depuis Node.js. Trois choix sont possibles : un ORM (Prisma, Sequelize), un query builder (Knex), ou le driver `pg` seul.
+
+Décision : j'utilise directement `pg`, avec des requêtes SQL paramétrées (`$1`, `$2`). Les paramètres sont envoyés à part de la requête, ce qui protège contre l'injection SQL.
+
+Pourquoi : le projet s'appuie sur des fonctionnalités propres à PostgreSQL, comme `tstzrange`, la contrainte `EXCLUDE USING gist` et `SELECT ... FOR UPDATE`. Les ORM les gèrent mal, et il faudrait de toute façon écrire du SQL brut pour ces parties. Avec 4 tables et une dizaine de requêtes, un ORM ajouterait de la configuration sans rien simplifier. Enfin, avec `pg`, je sais exactement quelle requête est exécutée, ce qui sera utile pour la mesurer avec `EXPLAIN ANALYZE` à l'étape 5.
+
+Conséquences : les migrations sont de simples fichiers `.sql`, appliqués dans l'ordre par un petit script (`scripts/migrate.js`) qui retient ceux déjà passés dans une table `schema_migrations`. Je dois convertir moi-même les lignes de la base (`start_at`, `room_id`) en objets JSON (`start`, `roomId`). Rien ne vérifie le SQL avant son exécution : ce sont les tests qui détectent une requête fausse.
