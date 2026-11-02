@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const { NotFoundError, ValidationError } = require('../domain/errors');
 const { parseUtcDate } = require('../domain/dates');
-const { validateSlot, checkNoOverlap } = require('../domain/booking');
+const { validateSlot, checkNoOverlap, checkMemberLimit } = require('../domain/booking');
 const { pool } = require('../infrastructure/db');
 const roomRepository = require('../infrastructure/roomRepository');
 const memberRepository = require('../infrastructure/memberRepository');
@@ -51,8 +51,11 @@ async function bookRoom(roomId, body, clock) {
   try {
     await client.query('BEGIN');
 
-    const member = await memberRepository.findMemberById(memberId, client);
+    const member = await memberRepository.lockMemberById(memberId, client);
     if (!member) throw new ValidationError('memberId inconnu');
+
+    const memberBookings = await bookingRepository.findBookingsByMember(memberId, client);
+    checkMemberLimit(memberBookings, clock.now());
 
     const roomBookings = await bookingRepository.findRoomSchedule(roomId, start, end, client);
     checkNoOverlap(roomBookings, start, end);

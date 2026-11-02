@@ -42,4 +42,13 @@ function checkNoOverlap(roomBookings, start, end) {
   }
 }
 
-module.exports = { validateSlot, overlaps, checkNoOverlap };
+const MAX_UPCOMING_BOOKINGS = 2;
+
+function checkMemberLimit(memberBookings, now) {
+  const upcoming = memberBookings.filter((b) => b.status === 'confirmed' && b.start > now);
+  if (upcoming.length >= MAX_UPCOMING_BOOKINGS) {
+    throw new ConflictError('Ce membre a déjà 2 réservations à venir');
+  }
+}
+
+module.exports = { validateSlot, overlaps, checkNoOverlap, checkMemberLimit };
